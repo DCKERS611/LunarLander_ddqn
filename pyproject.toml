@@ -12,6 +12,7 @@ dependencies = [
     "opencv-python>=5.0.0.93",
     "pandas>=3.0.3",
     "pygame>=2.6.1",
+    "python-docx>=1.2.0",
     "pyyaml>=6.0.3",
     "swig>=4.4.1",
     "torch>=2.12.1",

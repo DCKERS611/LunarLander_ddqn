@@ -219,6 +219,15 @@ Proposed = Double DQN + Dueling Network + Prioritized Experience Replay
 | Dueling Double DQN | 在 Double DQN 基础上加入 Dueling 网络结构 |
 | Proposed | Dueling Double DQN + 优先经验回放 |
 
+当前实验后的推荐口径：
+
+```text
+工程实现层面：Proposed = Dueling Double DQN + Prioritized Experience Replay
+最终推荐模型：Dueling Double DQN
+```
+
+说明：本项目已完成 Proposed 方法的代码实现和训练验证。实验结果显示，在当前 LunarLander-v3 训练规模与默认超参数下，PER 没有进一步提升 Dueling Double DQN，反而在后期出现性能退化。因此报告中将 Proposed 作为扩展方法和消融实验进行分析，最终展示效果以 Dueling Double DQN 为主。
+
 ---
 
 ## 六、工程结构规划
@@ -465,6 +474,50 @@ Dueling Double DQN + Prioritized Experience Replay
 5. loss 曲线截图
 ```
 
+### 阶段三实际完成记录
+
+```text
+1. 已实现 PrioritizedReplayBuffer：
+   - 为每条经验维护 priority。
+   - 使用 priority^alpha 计算采样概率。
+   - 采样时返回 importance-sampling weight。
+   - 每次训练后根据 abs(TD-error) 更新 priority。
+2. 已将 PER 接入 Dueling Double DQN，新增 --method proposed。
+3. 已完成 Proposed 默认 alpha=0.6 的 500 episode 训练：
+   - outputs/proposed/train_log.csv
+   - outputs/proposed/proposed_model.pth
+   - outputs/proposed/proposed_checkpoint.pth
+   - outputs/proposed/figures/proposed_reward_curve.png
+   - outputs/proposed/figures/proposed_loss_curve.png
+   - outputs/proposed/figures/proposed_epsilon_curve.png
+4. 已完成 PER alpha=0.3 的 300 episode 对照实验：
+   - outputs/proposed_alpha03/train_log.csv
+   - outputs/proposed_alpha03/proposed_model.pth
+   - outputs/proposed_alpha03/proposed_checkpoint.pth
+   - outputs/proposed_alpha03/figures/proposed_reward_curve.png
+   - outputs/proposed_alpha03/figures/proposed_reward_curve_last100.png
+5. 已生成包含 Proposed 的四组 reward 对比曲线：
+   - outputs/comparison/figures/reward_comparison_with_proposed.png
+6. 7.9 验收记录已整理：
+   - report/7.9_PER验收记录.md
+```
+
+### 阶段三实验结论
+
+```text
+PER 的工程验收通过，但实验效果没有达到预期。
+
+默认 alpha=0.6 的 500 episode 实验中，Proposed 最高 reward 达到 313.75，
+说明智能体曾经学到过有效着陆策略，但后期最后 100 集平均 reward 降至 -63.69，
+出现明显性能退化。
+
+降低优先级强度到 alpha=0.3 后，300 episode 最高 reward 只有 101.53，
+最后 100 集平均 reward 为 -72.90，仍未展现稳定提升。
+
+因此，后续报告将 PER 作为扩展模块和消融实验分析，而不是作为最终最优模型。
+最终推荐模型保留为 Dueling Double DQN。
+```
+
 ---
 
 ## 阶段四：完整训练与推理展示
@@ -510,6 +563,47 @@ Dueling Double DQN + Prioritized Experience Replay
 3. epsilon 曲线截图
 4. 推理运行截图
 5. 成功着陆视频/GIF截图
+```
+
+### 阶段四实际完成记录
+
+```text
+1. 已复用前序完成的四组 500 episode 训练结果作为正式训练结果：
+   - outputs/dqn/train_log.csv
+   - outputs/double_dqn/train_log.csv
+   - outputs/dueling_ddqn/train_log.csv
+   - outputs/proposed/train_log.csv
+2. 已新增 src/evaluate.py，用于加载训练后模型并进行固定 seed 的贪心策略评估。
+3. 已新增 src/record_video.py，用于从候选 episode 中选择 reward 最高的一局并保存推理 GIF、MP4 和关键帧。
+4. 已完成 DQN、Double DQN、Dueling Double DQN 和 Proposed 四组方法各 20 局评估，评估 seed 为 20260710-20260729，成功判定为 reward >= 200。
+5. 四组测试结果如下：
+   - DQN：平均 reward 146.28，最高 reward 258.21，成功率 35%。
+   - Double DQN：平均 reward 131.69，最高 reward 266.71，成功率 40%。
+   - Dueling Double DQN：平均 reward 131.46，最高 reward 282.42，成功率 40%。
+   - Proposed：平均 reward -150.01，最高 reward 148.83，成功率 0%。
+6. 已保存评估结果：
+   - outputs/evaluation/dqn_eval_episodes.csv
+   - outputs/evaluation/dqn_eval_summary.json
+   - outputs/evaluation/double_dqn_eval_episodes.csv
+   - outputs/evaluation/double_dqn_eval_summary.json
+   - outputs/evaluation/dueling_ddqn_eval_episodes.csv
+   - outputs/evaluation/dueling_ddqn_eval_summary.json
+   - outputs/evaluation/proposed_eval_episodes.csv
+   - outputs/evaluation/proposed_eval_summary.json
+7. 已使用 Dueling Double DQN 生成推理展示，最佳案例 seed=20260722，reward=282.42，188 步成功着陆。
+8. 已保存推理展示文件：
+   - outputs/videos/dueling_ddqn_inference_best.gif
+   - outputs/videos/dueling_ddqn_inference_best.mp4
+   - outputs/videos/dueling_ddqn_inference_best_summary.json
+9. 已保存随机策略和训练后策略关键帧：
+   - screenshots/inference/random_policy_start.png
+   - screenshots/inference/random_policy_middle.png
+   - screenshots/inference/random_policy_end.png
+   - screenshots/inference/dueling_ddqn_best_start.png
+   - screenshots/inference/dueling_ddqn_best_middle.png
+   - screenshots/inference/dueling_ddqn_best_end.png
+10. 已整理 7.10 评估与推理记录：
+   - report/7.10_评估与推理记录.md
 ```
 
 ---
@@ -834,19 +928,19 @@ DQN
 ## 十七、最终检查清单
 
 ```text
-[ ] Python 虚拟环境创建完成
-[ ] 依赖安装完成
-[ ] LunarLander 或 CartPole 环境可运行
-[ ] DQN 代码完成
-[ ] Double DQN 代码完成
-[ ] Dueling DQN 代码完成
-[ ] PER 代码完成
-[ ] 训练日志保存完成
-[ ] reward 曲线保存完成
-[ ] loss 曲线保存完成
-[ ] epsilon 曲线保存完成
-[ ] checkpoint 保存完成
-[ ] 推理视频或截图保存完成
+[x] Python 虚拟环境创建完成
+[x] 依赖安装完成
+[x] LunarLander 或 CartPole 环境可运行
+[x] DQN 代码完成
+[x] Double DQN 代码完成
+[x] Dueling DQN 代码完成
+[x] PER 代码完成
+[x] 训练日志保存完成
+[x] reward 曲线保存完成
+[x] loss 曲线保存完成
+[x] epsilon 曲线保存完成
+[x] checkpoint 保存完成
+[x] 推理视频或截图保存完成
 [ ] 主实验表格完成
 [ ] 消融实验表格完成
 [ ] 报告截图整理完成

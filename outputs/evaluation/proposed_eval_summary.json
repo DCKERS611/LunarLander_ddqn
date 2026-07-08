@@ -1,0 +1,16 @@
+{
+  "episodes": 20,
+  "mean_reward": -150.01299531889583,
+  "std_reward": 115.39540879289993,
+  "min_reward": -368.29085855670775,
+  "max_reward": 148.83056161227796,
+  "success_threshold": 200.0,
+  "success_count": 0,
+  "success_rate": 0.0,
+  "mean_steps": 131.55,
+  "method": "proposed",
+  "label": "Proposed (Dueling DDQN + PER)",
+  "model_path": "outputs\\proposed\\proposed_model.pth",
+  "seed_start": 20260710,
+  "max_steps": 1000
+}

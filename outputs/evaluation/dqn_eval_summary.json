@@ -1,0 +1,16 @@
+{
+  "episodes": 20,
+  "mean_reward": 146.28263002450248,
+  "std_reward": 91.1769636305739,
+  "min_reward": -57.322501406808136,
+  "max_reward": 258.2140902974897,
+  "success_threshold": 200.0,
+  "success_count": 7,
+  "success_rate": 0.35,
+  "mean_steps": 741.5,
+  "method": "dqn",
+  "label": "DQN",
+  "model_path": "outputs\\dqn\\dqn_model.pth",
+  "seed_start": 20260710,
+  "max_steps": 1000
+}

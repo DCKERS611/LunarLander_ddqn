@@ -1,0 +1,16 @@
+{
+  "episodes": 20,
+  "mean_reward": 131.46008531039197,
+  "std_reward": 115.72732645054319,
+  "min_reward": -35.58551078669182,
+  "max_reward": 282.41624097877485,
+  "success_threshold": 200.0,
+  "success_count": 8,
+  "success_rate": 0.4,
+  "mean_steps": 681.45,
+  "method": "dueling_ddqn",
+  "label": "Dueling Double DQN",
+  "model_path": "outputs\\dueling_ddqn\\dueling_ddqn_model.pth",
+  "seed_start": 20260710,
+  "max_steps": 1000
+}

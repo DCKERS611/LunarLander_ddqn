@@ -1,0 +1,181 @@
+{
+  "method": "dueling_ddqn",
+  "label": "Dueling Double DQN",
+  "model_path": "outputs\\dueling_ddqn\\dueling_ddqn_model.pth",
+  "candidate_episodes": 20,
+  "seed_start": 20260710,
+  "selected_seed": 20260722,
+  "selected_reward": 282.41624097877485,
+  "selected_steps": 188,
+  "recorded_reward": 282.41624097877485,
+  "recorded_steps": 188,
+  "gif_path": "outputs\\videos\\dueling_ddqn_inference_best.gif",
+  "mp4_path": "outputs\\videos\\dueling_ddqn_inference_best.mp4",
+  "frame_paths": [
+    "screenshots\\inference\\dueling_ddqn_best_start.png",
+    "screenshots\\inference\\dueling_ddqn_best_middle.png",
+    "screenshots\\inference\\dueling_ddqn_best_end.png"
+  ],
+  "candidates": [
+    {
+      "seed": 20260710,
+      "reward": 158.3839134766837,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 1
+    },
+    {
+      "seed": 20260711,
+      "reward": 196.63442004543862,
+      "steps": 470,
+      "terminated": true,
+      "truncated": false,
+      "episode": 2
+    },
+    {
+      "seed": 20260712,
+      "reward": 137.17861229744406,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 3
+    },
+    {
+      "seed": 20260713,
+      "reward": 36.582688872344704,
+      "steps": 222,
+      "terminated": true,
+      "truncated": false,
+      "episode": 4
+    },
+    {
+      "seed": 20260714,
+      "reward": -21.897777215522996,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 5
+    },
+    {
+      "seed": 20260715,
+      "reward": 257.78590772052877,
+      "steps": 292,
+      "terminated": true,
+      "truncated": false,
+      "episode": 6
+    },
+    {
+      "seed": 20260716,
+      "reward": 221.4213602838708,
+      "steps": 610,
+      "terminated": true,
+      "truncated": false,
+      "episode": 7
+    },
+    {
+      "seed": 20260717,
+      "reward": -25.205334503367293,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 8
+    },
+    {
+      "seed": 20260718,
+      "reward": -11.577072890853977,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 9
+    },
+    {
+      "seed": 20260719,
+      "reward": 281.6963306059745,
+      "steps": 182,
+      "terminated": true,
+      "truncated": false,
+      "episode": 10
+    },
+    {
+      "seed": 20260720,
+      "reward": 88.32096051608835,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 11
+    },
+    {
+      "seed": 20260721,
+      "reward": -35.58551078669182,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 12
+    },
+    {
+      "seed": 20260722,
+      "reward": 282.41624097877485,
+      "steps": 188,
+      "terminated": true,
+      "truncated": false,
+      "episode": 13
+    },
+    {
+      "seed": 20260723,
+      "reward": 238.68244594928055,
+      "steps": 834,
+      "terminated": true,
+      "truncated": false,
+      "episode": 14
+    },
+    {
+      "seed": 20260724,
+      "reward": 262.13787447799984,
+      "steps": 205,
+      "terminated": true,
+      "truncated": false,
+      "episode": 15
+    },
+    {
+      "seed": 20260725,
+      "reward": -21.965567660295807,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 16
+    },
+    {
+      "seed": 20260726,
+      "reward": 126.72348919038605,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 17
+    },
+    {
+      "seed": 20260727,
+      "reward": 212.7731679561699,
+      "steps": 425,
+      "terminated": true,
+      "truncated": false,
+      "episode": 18
+    },
+    {
+      "seed": 20260728,
+      "reward": 5.645730900835607,
+      "steps": 1000,
+      "terminated": false,
+      "truncated": true,
+      "episode": 19
+    },
+    {
+      "seed": 20260729,
+      "reward": 239.04982599275112,
+      "steps": 201,
+      "terminated": true,
+      "truncated": false,
+      "episode": 20
+    }
+  ]
+}

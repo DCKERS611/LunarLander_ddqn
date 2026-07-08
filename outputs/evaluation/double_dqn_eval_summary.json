@@ -1,0 +1,16 @@
+{
+  "episodes": 20,
+  "mean_reward": 131.69162764319896,
+  "std_reward": 101.89348385588391,
+  "min_reward": -10.476265291944543,
+  "max_reward": 266.70666347342456,
+  "success_threshold": 200.0,
+  "success_count": 8,
+  "success_rate": 0.4,
+  "mean_steps": 748.35,
+  "method": "double_dqn",
+  "label": "Double DQN",
+  "model_path": "outputs\\double_dqn\\double_dqn_model.pth",
+  "seed_start": 20260710,
+  "max_steps": 1000
+}
