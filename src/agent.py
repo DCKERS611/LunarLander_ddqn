@@ -5,11 +5,13 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-from networks import DQNNetwork
+from networks import DQNNetwork, DuelingDQNNetwork
 from replay_buffer import ReplayBuffer
 
 
 class DQNAgent:
+    """统一管理 DQN、Double DQN 和 Dueling Double DQN 的智能体。"""
+
     def __init__(
         self,
         state_dim,
@@ -19,25 +21,35 @@ class DQNAgent:
         gamma=0.99,
         buffer_size=100_000,
         batch_size=64,
+        double_dqn=False,
+        dueling=False,
         device=None,
     ):
+        # action_dim 用于 epsilon-greedy 随机探索时确定动作数量。
         self.action_dim = action_dim
         self.gamma = gamma
         self.batch_size = batch_size
+
+        # double_dqn 控制目标值计算方式，dueling 控制使用哪一种网络结构。
+        self.double_dqn = double_dqn
+        self.dueling = dueling
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.q_net = DQNNetwork(state_dim, action_dim, hidden_dim).to(self.device)
-        self.target_q_net = DQNNetwork(state_dim, action_dim, hidden_dim).to(self.device)
+        # online network 负责当前动作价值估计；target network 只定期同步，用来稳定目标值。
+        network_class = DuelingDQNNetwork if dueling else DQNNetwork
+        self.q_net = network_class(state_dim, action_dim, hidden_dim).to(self.device)
+        self.target_q_net = network_class(state_dim, action_dim, hidden_dim).to(self.device)
         self.target_q_net.load_state_dict(self.q_net.state_dict())
 
         self.optimizer = optim.Adam(self.q_net.parameters(), lr=lr)
         self.replay_buffer = ReplayBuffer(buffer_size)
 
     def select_action(self, state, epsilon):
-        # epsilon-greedy：有概率随机探索，否则选择 Q 值最大的动作。
+        # epsilon-greedy：训练前期更多随机探索，后期更多利用网络学到的策略。
         if random.random() < epsilon:
             return random.randrange(self.action_dim)
 
+        # Gymnasium 返回的是 numpy 数组，这里转成 PyTorch 张量并增加 batch 维度。
         state = np.array(state, dtype=np.float32)
         state_tensor = torch.tensor(state, device=self.device).unsqueeze(0)
 
@@ -47,12 +59,15 @@ class DQNAgent:
         return int(q_values.argmax(dim=1).item())
 
     def store_transition(self, state, action, reward, next_state, done):
+        # 每一步交互得到的经验都会先进入回放池，再从回放池随机采样训练。
         self.replay_buffer.push(state, action, reward, next_state, done)
 
     def update(self):
+        # 回放池样本不足一个 batch 时先不训练，避免采样报错。
         if len(self.replay_buffer) < self.batch_size:
             return None
 
+        # 从经验回放池采样一批 transition，打破连续时间步之间的相关性。
         states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
 
         states = torch.tensor(states, device=self.device)
@@ -65,10 +80,19 @@ class DQNAgent:
         q_values = self.q_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
 
         with torch.no_grad():
-            # 目标网络估计：r + gamma * max Q(s', a')。
-            next_q_values = self.target_q_net(next_states).max(dim=1).values
+            if self.double_dqn:
+                # Double DQN：online network 选动作，target network 评估该动作价值。
+                # 这样可以缓解普通 DQN 中 max 操作带来的 Q 值过估计问题。
+                next_actions = self.q_net(next_states).argmax(dim=1, keepdim=True)
+                next_q_values = self.target_q_net(next_states).gather(1, next_actions).squeeze(1)
+            else:
+                # DQN：target network 直接取下一状态最大 Q 值。
+                next_q_values = self.target_q_net(next_states).max(dim=1).values
+
+            # done=1 表示 episode 已结束，终止状态后面不再叠加未来奖励。
             target_q_values = rewards + self.gamma * next_q_values * (1 - dones)
 
+        # Huber loss 对异常 TD error 更稳，比均方误差更适合 DQN 训练。
         loss = F.smooth_l1_loss(q_values, target_q_values)
 
         self.optimizer.zero_grad()
