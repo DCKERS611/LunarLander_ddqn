@@ -7,8 +7,12 @@
 - LunarLander-v3 环境验证
 - 随机智能体基线
 - 基础 DQN
+- Double DQN
+- Dueling Double DQN
+- Proposed：Dueling Double DQN + Prioritized Experience Replay
 - 训练日志保存
-- reward 曲线绘制
+- reward / loss / epsilon 日志保存
+- reward 对比曲线和 Proposed loss 曲线绘制
 - 课程设计报告框架
 
 ## 环境
@@ -33,7 +37,28 @@ uv run python src/test_env.py
 uv run python src/train.py
 ```
 
-绘制 reward 曲线：
+训练不同算法：
+
+```powershell
+uv run python src/train.py --method dqn --episodes 500
+uv run python src/train.py --method double_dqn --episodes 500
+uv run python src/train.py --method dueling_ddqn --episodes 500
+uv run python src/train.py --method proposed --episodes 500
+```
+
+Proposed 方法对应：
+
+```text
+Dueling Double DQN + Prioritized Experience Replay
+```
+
+Proposed 推荐配置模板：
+
+```text
+configs/proposed.yaml
+```
+
+绘制 reward / loss 曲线：
 
 ```powershell
 uv run python src/plot_results.py
@@ -42,4 +67,10 @@ uv run python src/plot_last100_reward.py
 
 ## 当前结果
 
-基础 DQN 已完成 500 个 episode 训练，训练日志和模型权重保存在 `outputs/dqn/`。
+已完成基础 DQN、Double DQN、Dueling Double DQN 的 500 episode 初版训练。
+
+7.9 已补充 Prioritized Experience Replay 和 Proposed 方法代码结构；训练命令已就绪，后续需要正式结果时运行：
+
+```powershell
+uv run python src/train.py --method proposed --episodes 500
+```

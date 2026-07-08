@@ -1,0 +1,29 @@
+method: proposed
+label: "Proposed (Dueling Double DQN + Prioritized Experience Replay)"
+
+environment:
+  name: LunarLander-v3
+  max_steps: 1000
+  seed: 42
+
+training:
+  episodes: 500
+  target_update_interval: 10
+  output_dir: outputs/proposed
+
+agent:
+  hidden_dim: 128
+  learning_rate: 0.001
+  gamma: 0.99
+  buffer_size: 100000
+  batch_size: 64
+
+exploration:
+  epsilon_start: 1.0
+  epsilon_min: 0.05
+  epsilon_decay: 0.995
+
+per:
+  alpha: 0.6
+  beta_start: 0.4
+  beta_frames: 100000

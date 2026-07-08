@@ -17,6 +17,11 @@ METHOD_LOGS = {
         "log_path": "outputs/dueling_ddqn/train_log.csv",
         "figure_dir": "outputs/dueling_ddqn/figures",
     },
+    "proposed": {
+        "label": "Proposed (Dueling DDQN + PER)",
+        "log_path": "outputs/proposed/train_log.csv",
+        "figure_dir": "outputs/proposed/figures",
+    },
 }
 
 
@@ -192,6 +197,62 @@ def plot_method_last100_reward_curve(method, log_path=None, output_dir=None):
     return output_path, summary
 
 
+def plot_method_loss_curve(method, log_path=None, output_dir=None):
+    # 绘制单个算法的 loss 曲线，重点服务 Proposed 方法的 7.9 产出。
+    method_config = METHOD_LOGS[method]
+    label = method_config["label"]
+    log_path = Path(log_path or method_config["log_path"])
+    output_dir = Path(output_dir or method_config["figure_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    episodes, rewards, avg_rewards, losses, epsilons = read_training_log(log_path)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(episodes, losses, color="#16a34a", linewidth=1.6, label="Average loss")
+
+    plt.title(f"{label} Loss Curve on LunarLander-v3")
+    plt.xlabel("Episode")
+    plt.ylabel("Average Loss")
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+
+    output_path = output_dir / f"{method}_loss_curve.png"
+    plt.savefig(output_path, dpi=200)
+    plt.close()
+
+    print(f"{label} loss curve saved to: {output_path}")
+    return output_path
+
+
+def plot_method_epsilon_curve(method, log_path=None, output_dir=None):
+    # 绘制 epsilon 衰减曲线，用于展示探索率从随机探索逐步转向策略利用的过程。
+    method_config = METHOD_LOGS[method]
+    label = method_config["label"]
+    log_path = Path(log_path or method_config["log_path"])
+    output_dir = Path(output_dir or method_config["figure_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    episodes, rewards, avg_rewards, losses, epsilons = read_training_log(log_path)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(episodes, epsilons, color="#7c3aed", linewidth=1.8, label="Epsilon")
+
+    plt.title(f"{label} Epsilon Decay on LunarLander-v3")
+    plt.xlabel("Episode")
+    plt.ylabel("Epsilon")
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+
+    output_path = output_dir / f"{method}_epsilon_curve.png"
+    plt.savefig(output_path, dpi=200)
+    plt.close()
+
+    print(f"{label} epsilon curve saved to: {output_path}")
+    return output_path
+
+
 def plot_double_dqn_and_dueling_figures():
     # 生成 4 张图：Double DQN 和 Dueling DDQN 各一张完整 reward 曲线、一张最后 100 轮 reward 曲线。
     outputs = []
@@ -201,18 +262,30 @@ def plot_double_dqn_and_dueling_figures():
     return outputs
 
 
+def plot_proposed_figures():
+    # 7.9 当日产出：Proposed reward、last100 reward、loss 和 epsilon 曲线。
+    outputs = [
+        plot_method_reward_curve("proposed"),
+        plot_method_last100_reward_curve("proposed"),
+        plot_method_loss_curve("proposed"),
+        plot_method_epsilon_curve("proposed"),
+    ]
+    return outputs
+
+
 def plot_comparison_curve(
     log_paths=None,
     output_dir="outputs/comparison/figures",
     output_name="reward_comparison_dqn_variants.png",
 ):
     # 绘制 DQN、Double DQN、Dueling DDQN 三组算法的奖励对比曲线。
-    # 默认读取 outputs/dqn、outputs/double_dqn 和 outputs/dueling_ddqn。
+    # 默认读取 outputs/dqn、outputs/double_dqn、outputs/dueling_ddqn 和 outputs/proposed。
     if log_paths is None:
         log_paths = {
             "DQN": "outputs/dqn/train_log.csv",
             "Double DQN": "outputs/double_dqn/train_log.csv",
             "Dueling DDQN": "outputs/dueling_ddqn/train_log.csv",
+            "Proposed": "outputs/proposed/train_log.csv",
         }
 
     output_dir = Path(output_dir)
@@ -223,6 +296,7 @@ def plot_comparison_curve(
         "DQN": "#9ca3af",
         "Double DQN": "#2563eb",
         "Dueling DDQN": "#dc8a00",
+        "Proposed": "#16a34a",
     }
 
     for method_name, log_path in log_paths.items():
@@ -266,4 +340,11 @@ def plot_comparison_curve(
 
 if __name__ == "__main__":
     plot_reward_curve()
+    for method, config in METHOD_LOGS.items():
+        if Path(config["log_path"]).exists():
+            plot_method_reward_curve(method)
+            plot_method_last100_reward_curve(method)
+            plot_method_epsilon_curve(method)
+            if method == "proposed":
+                plot_method_loss_curve(method)
     plot_comparison_curve()

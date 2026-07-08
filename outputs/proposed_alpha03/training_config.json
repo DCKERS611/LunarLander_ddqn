@@ -1,0 +1,24 @@
+{
+  "method": "proposed",
+  "label": "Proposed (Dueling DDQN + PER)",
+  "episodes": 300,
+  "max_steps": 1000,
+  "target_update_interval": 10,
+  "seed": 42,
+  "epsilon_start": 1.0,
+  "epsilon_min": 0.05,
+  "epsilon_decay": 0.995,
+  "agent": {
+    "hidden_dim": 128,
+    "lr": 0.001,
+    "gamma": 0.99,
+    "buffer_size": 100000,
+    "batch_size": 64,
+    "double_dqn": true,
+    "dueling": true,
+    "prioritized_replay": true,
+    "per_alpha": 0.3,
+    "per_beta_start": 0.4,
+    "per_beta_frames": 100000
+  }
+}

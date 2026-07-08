@@ -1,5 +1,6 @@
 import argparse
 import csv
+import json
 import random
 from pathlib import Path
 
@@ -17,19 +18,29 @@ METHODS = {
         "label": "DQN",
         "double_dqn": False,
         "dueling": False,
+        "prioritized_replay": False,
         "output_dir": "outputs/dqn",
     },
     "double_dqn": {
         "label": "Double DQN",
         "double_dqn": True,
         "dueling": False,
+        "prioritized_replay": False,
         "output_dir": "outputs/double_dqn",
     },
     "dueling_ddqn": {
         "label": "Dueling Double DQN",
         "double_dqn": True,
         "dueling": True,
+        "prioritized_replay": False,
         "output_dir": "outputs/dueling_ddqn",
+    },
+    "proposed": {
+        "label": "Proposed (Dueling DDQN + PER)",
+        "double_dqn": True,
+        "dueling": True,
+        "prioritized_replay": True,
+        "output_dir": "outputs/proposed",
     },
 }
 
@@ -50,6 +61,17 @@ def train_dqn(
     target_update_interval=10,
     output_dir=None,
     seed=42,
+    hidden_dim=128,
+    lr=1e-3,
+    gamma=0.99,
+    buffer_size=100_000,
+    batch_size=64,
+    epsilon_start=1.0,
+    epsilon_min=0.05,
+    epsilon_decay=0.995,
+    per_alpha=0.6,
+    per_beta_start=0.4,
+    per_beta_frames=100_000,
 ):
     # method 决定使用基础 DQN、Double DQN 还是 Dueling Double DQN。
     if method not in METHODS:
@@ -68,18 +90,29 @@ def train_dqn(
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
 
+    epsilon = epsilon_start
+    agent_params = {
+        "hidden_dim": hidden_dim,
+        "lr": lr,
+        "gamma": gamma,
+        "buffer_size": buffer_size,
+        "batch_size": batch_size,
+        "double_dqn": method_config["double_dqn"],
+        "dueling": method_config["dueling"],
+        "prioritized_replay": method_config["prioritized_replay"],
+        "per_alpha": per_alpha,
+        "per_beta_start": per_beta_start,
+        "per_beta_frames": per_beta_frames,
+    }
+
     # 根据 method_config 中的开关构建对应智能体。
     # double_dqn=True 会启用 Double DQN 目标值；dueling=True 会启用 Dueling 网络。
+    # prioritized_replay=True 会启用 PER，形成 Proposed 方法。
     agent = DQNAgent(
         state_dim=state_dim,
         action_dim=action_dim,
-        double_dqn=method_config["double_dqn"],
-        dueling=method_config["dueling"],
+        **agent_params,
     )
-
-    epsilon = 1.0
-    epsilon_min = 0.05
-    epsilon_decay = 0.995
 
     # rewards 用于计算最近 10 局平均奖励，log_rows 最终写入 CSV 文件。
     rewards = []
@@ -87,6 +120,22 @@ def train_dqn(
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+
+    config_path = output_path / "training_config.json"
+    training_config = {
+        "method": method,
+        "label": method_config["label"],
+        "episodes": episodes,
+        "max_steps": max_steps,
+        "target_update_interval": target_update_interval,
+        "seed": seed,
+        "epsilon_start": epsilon_start,
+        "epsilon_min": epsilon_min,
+        "epsilon_decay": epsilon_decay,
+        "agent": agent_params,
+    }
+    with config_path.open("w", encoding="utf-8") as file:
+        json.dump(training_config, file, ensure_ascii=False, indent=2)
 
     for episode in range(1, episodes + 1):
         state, info = env.reset()
@@ -132,6 +181,7 @@ def train_dqn(
                 "epsilon": epsilon,
                 "steps": step,
                 "method": method,
+                "per_beta": agent.current_per_beta() if agent.prioritized_replay else "",
             }
         )
 
@@ -149,6 +199,7 @@ def train_dqn(
 
     log_path = output_path / "train_log.csv"
     model_path = output_path / f"{method}_model.pth"
+    checkpoint_path = output_path / f"{method}_checkpoint.pth"
 
     # 每种算法都保存为相同的 train_log.csv，便于 plot_results.py 自动读取对比。
     with log_path.open("w", newline="", encoding="utf-8") as file:
@@ -158,16 +209,32 @@ def train_dqn(
 
     # 保存 online network 参数，用于后续评估、推理或录制视频。
     torch.save(agent.q_net.state_dict(), model_path)
+    torch.save(
+        {
+            "method": method,
+            "method_config": method_config,
+            "training_config": training_config,
+            "episode": episodes,
+            "epsilon": epsilon,
+            "last_log": log_rows[-1],
+            "q_net_state_dict": agent.q_net.state_dict(),
+            "target_q_net_state_dict": agent.target_q_net.state_dict(),
+            "optimizer_state_dict": agent.optimizer.state_dict(),
+        },
+        checkpoint_path,
+    )
 
     print(f"\n算法: {method_config['label']}")
+    print(f"训练配置已保存: {config_path}")
     print(f"训练日志已保存: {log_path}")
     print(f"模型权重已保存: {model_path}")
+    print(f"训练 checkpoint 已保存: {checkpoint_path}")
     return log_path, model_path
 
 
 if __name__ == "__main__":
     # 命令行接口示例：
-    # uv run python src/train.py --method double_dqn --episodes 300
+    # uv run python src/train.py --method proposed --episodes 500
     parser = argparse.ArgumentParser(description="Train DQN variants on LunarLander-v3.")
     parser.add_argument("--method", choices=METHODS.keys(), default="dqn")
     parser.add_argument("--episodes", type=int, default=500)
@@ -175,6 +242,17 @@ if __name__ == "__main__":
     parser.add_argument("--target-update-interval", type=int, default=10)
     parser.add_argument("--output-dir", default=None)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--hidden-dim", type=int, default=128)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--buffer-size", type=int, default=100_000)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--epsilon-start", type=float, default=1.0)
+    parser.add_argument("--epsilon-min", type=float, default=0.05)
+    parser.add_argument("--epsilon-decay", type=float, default=0.995)
+    parser.add_argument("--per-alpha", type=float, default=0.6)
+    parser.add_argument("--per-beta-start", type=float, default=0.4)
+    parser.add_argument("--per-beta-frames", type=int, default=100_000)
     args = parser.parse_args()
 
     train_dqn(
@@ -184,4 +262,15 @@ if __name__ == "__main__":
         target_update_interval=args.target_update_interval,
         output_dir=args.output_dir,
         seed=args.seed,
+        hidden_dim=args.hidden_dim,
+        lr=args.lr,
+        gamma=args.gamma,
+        buffer_size=args.buffer_size,
+        batch_size=args.batch_size,
+        epsilon_start=args.epsilon_start,
+        epsilon_min=args.epsilon_min,
+        epsilon_decay=args.epsilon_decay,
+        per_alpha=args.per_alpha,
+        per_beta_start=args.per_beta_start,
+        per_beta_frames=args.per_beta_frames,
     )

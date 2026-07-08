@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import optim
 
 from networks import DQNNetwork, DuelingDQNNetwork
-from replay_buffer import ReplayBuffer
+from replay_buffer import PrioritizedReplayBuffer, ReplayBuffer
 
 
 class DQNAgent:
@@ -23,16 +23,24 @@ class DQNAgent:
         batch_size=64,
         double_dqn=False,
         dueling=False,
+        prioritized_replay=False,
+        per_alpha=0.6,
+        per_beta_start=0.4,
+        per_beta_frames=100_000,
         device=None,
     ):
         # action_dim 用于 epsilon-greedy 随机探索时确定动作数量。
         self.action_dim = action_dim
         self.gamma = gamma
         self.batch_size = batch_size
+        self.update_steps = 0
 
         # double_dqn 控制目标值计算方式，dueling 控制使用哪一种网络结构。
         self.double_dqn = double_dqn
         self.dueling = dueling
+        self.prioritized_replay = prioritized_replay
+        self.per_beta_start = per_beta_start
+        self.per_beta_frames = per_beta_frames
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
         # online network 负责当前动作价值估计；target network 只定期同步，用来稳定目标值。
@@ -42,7 +50,10 @@ class DQNAgent:
         self.target_q_net.load_state_dict(self.q_net.state_dict())
 
         self.optimizer = optim.Adam(self.q_net.parameters(), lr=lr)
-        self.replay_buffer = ReplayBuffer(buffer_size)
+        if prioritized_replay:
+            self.replay_buffer = PrioritizedReplayBuffer(buffer_size, alpha=per_alpha)
+        else:
+            self.replay_buffer = ReplayBuffer(buffer_size)
 
     def select_action(self, state, epsilon):
         # epsilon-greedy：训练前期更多随机探索，后期更多利用网络学到的策略。
@@ -67,8 +78,18 @@ class DQNAgent:
         if len(self.replay_buffer) < self.batch_size:
             return None
 
+        self.update_steps += 1
+
         # 从经验回放池采样一批 transition，打破连续时间步之间的相关性。
-        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
+        if self.prioritized_replay:
+            beta = self.current_per_beta()
+            sample = self.replay_buffer.sample(self.batch_size, beta=beta)
+            states, actions, rewards, next_states, dones, indices, weights = sample
+            weights = torch.tensor(weights, device=self.device)
+        else:
+            states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
+            indices = None
+            weights = None
 
         states = torch.tensor(states, device=self.device)
         actions = torch.tensor(actions, device=self.device)
@@ -92,14 +113,29 @@ class DQNAgent:
             # done=1 表示 episode 已结束，终止状态后面不再叠加未来奖励。
             target_q_values = rewards + self.gamma * next_q_values * (1 - dones)
 
-        # Huber loss 对异常 TD error 更稳，比均方误差更适合 DQN 训练。
-        loss = F.smooth_l1_loss(q_values, target_q_values)
+        td_errors = target_q_values - q_values
+
+        # Huber loss 对异常 TD error 更稳；PER 模式下额外乘以 importance-sampling weight。
+        if self.prioritized_replay:
+            loss_elements = F.smooth_l1_loss(q_values, target_q_values, reduction="none")
+            loss = (weights * loss_elements).mean()
+        else:
+            loss = F.smooth_l1_loss(q_values, target_q_values)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
+        if self.prioritized_replay:
+            td_errors_np = td_errors.detach().abs().cpu().numpy()
+            self.replay_buffer.update_priorities(indices, td_errors_np)
+
         return loss.item()
+
+    def current_per_beta(self):
+        # beta 从 per_beta_start 逐步退火到 1.0，训练后期更充分校正优先采样偏差。
+        progress = min(1.0, self.update_steps / self.per_beta_frames)
+        return self.per_beta_start + progress * (1.0 - self.per_beta_start)
 
     def update_target_network(self):
         # 定期同步目标网络，让训练更稳定。
