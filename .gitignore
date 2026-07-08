@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local Word reports and Word lock files
+report/*.docx
+report/~$*.docx
+~$*.docx

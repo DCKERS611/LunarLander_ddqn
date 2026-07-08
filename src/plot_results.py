@@ -198,7 +198,7 @@ def plot_method_last100_reward_curve(method, log_path=None, output_dir=None):
 
 
 def plot_method_loss_curve(method, log_path=None, output_dir=None):
-    # 绘制单个算法的 loss 曲线，重点服务 Proposed 方法的 7.9 产出。
+    # 绘制单个算法的 loss 曲线，重点服务 Proposed 方法结果分析。
     method_config = METHOD_LOGS[method]
     label = method_config["label"]
     log_path = Path(log_path or method_config["log_path"])
@@ -263,7 +263,7 @@ def plot_double_dqn_and_dueling_figures():
 
 
 def plot_proposed_figures():
-    # 7.9 当日产出：Proposed reward、last100 reward、loss 和 epsilon 曲线。
+    # Proposed 方法图表：reward、last100 reward、loss 和 epsilon 曲线。
     outputs = [
         plot_method_reward_curve("proposed"),
         plot_method_last100_reward_curve("proposed"),

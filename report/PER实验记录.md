@@ -1,6 +1,6 @@
-# 7.9 优先经验回放与 Proposed 方法验收记录
+# 优先经验回放与 Proposed 方法实验记录
 
-## 一、当日产出核对
+## 一、产出核对
 
 | 要求 | 完成情况 | 对应文件 |
 |---|---|---|
@@ -42,7 +42,7 @@
 
 ## 五、实验结论
 
-本项目原计划将 Dueling Double DQN 与 Prioritized Experience Replay 组合为 Proposed 方法。实验结果表明，PER 代码和训练流程可以正常运行，满足 7.9 的工程验收要求；但在当前默认超参数下，Proposed 方法没有超过 Dueling Double DQN，训练后期反而出现明显性能退化。
+本项目原计划将 Dueling Double DQN 与 Prioritized Experience Replay 组合为 Proposed 方法。实验结果表明，PER 代码和训练流程可以正常运行，满足工程验收要求；但在当前默认超参数下，Proposed 方法没有超过 Dueling Double DQN，训练后期反而出现明显性能退化。
 
 可能原因是 PER 会更频繁采样 TD-error 较大的经验，而 LunarLander 训练中的高 TD-error 样本往往包含坠毁、姿态失控等失败场景。训练早期这些样本的误差较大但并不一定具有稳定学习价值，过度采样可能放大不成熟策略带来的偏差，导致 Q 网络后期价值估计偏移。
 
